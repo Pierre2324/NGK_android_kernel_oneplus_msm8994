@@ -280,7 +280,11 @@ static bool wq_power_efficient = true;
 static bool wq_power_efficient;
 #endif
 
+<<<<<<< HEAD
 module_param_named(power_efficient, wq_power_efficient, bool, 0644);
+=======
+module_param_named(power_efficient, wq_power_efficient, bool, 0444);
+>>>>>>> ed02e264baee... workqueues: Introduce new flag WQ_POWER_EFFICIENT for power oriented workqueues
 
 static bool wq_numa_enabled;		/* unbound NUMA affinity enabled */
 
@@ -4246,6 +4250,7 @@ struct workqueue_struct *__alloc_workqueue_key(const char *fmt,
 	/* see the comment above the definition of WQ_POWER_EFFICIENT */
 	if ((flags & WQ_POWER_EFFICIENT) && wq_power_efficient)
 		flags |= WQ_UNBOUND;
+		
 	/*
 	 * Unbound && max_active == 1 used to imply ordered, which is no
 	 * longer the case on NUMA machines due to per-node pools.  While
