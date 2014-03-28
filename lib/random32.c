@@ -181,6 +181,26 @@ core_initcall(prandom_init);
 static int __init prandom_reseed(void)
 {
 	int i;
+	unsigned long flags;
+	static bool latch = false;
+	static DEFINE_SPINLOCK(lock);
+
+	/* Asking for random bytes might result in bytes getting
+	 * moved into the nonblocking pool and thus marking it
+	 * as initialized. In this case we would double back into
+	 * this function and attempt to do a late reseed.
+	 * Ignore the pointless attempt to reseed again if we're
+	 * already waiting for bytes when the nonblocking pool
+	 * got initialized.
+	 */
+
+	/* only allow initial seeding (late == false) once */
+	if (!spin_trylock_irqsave(&lock, flags))
+		return;
+
+	if (latch && !late)
+		goto out;
+	latch = true;
 
 	for_each_possible_cpu(i) {
 		struct rnd_state *state = &per_cpu(net_rand_state,i);
