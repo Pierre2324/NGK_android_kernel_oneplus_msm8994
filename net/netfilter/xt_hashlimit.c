@@ -342,7 +342,7 @@ static void htable_remove_proc_entry(struct xt_hashlimit_htable *hinfo)
 
 static void htable_destroy(struct xt_hashlimit_htable *hinfo)
 {
-	del_timer_sync(&hinfo->timer);
+	cancel_delayed_work_sync(&hinfo->gc_work);
 	htable_remove_proc_entry(hinfo);
 	htable_selective_cleanup(hinfo, select_all);
 	kfree(hinfo->name);
