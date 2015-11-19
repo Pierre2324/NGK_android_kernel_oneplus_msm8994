@@ -157,6 +157,10 @@ struct cpufreq_interactive_tunables {
 
 	/* Improves frequency selection for more energy */
 	bool powersave_bias;
+
+	/* Maximum frequency while the screen is off */
+#define DEFAULT_SCREEN_OFF_MAX 1248000
+	unsigned long screen_off_max;
 };
 
 /* For cases where we have single governor instance for system */
@@ -677,6 +681,11 @@ static int cpufreq_interactive_speedchange_task(void *data)
 			if (!ppol->governor_enabled) {
 				up_read(&ppol->enable_sem);
 				continue;
+			}
+
+			if (unlikely(!display_on)) {
+			    if (ppol->target_freq > tunables->screen_off_max)
+				ppol->target_freq = tunables->screen_off_max;
 			}
 
 			if (ppol->target_freq != ppol->policy->cur) {
@@ -1393,6 +1402,32 @@ static ssize_t store_powersave_bias(struct cpufreq_interactive_tunables *tunable
 	return count;
 }
 
+static ssize_t show_screen_off_maxfreq(
+		struct cpufreq_interactive_tunables *tunables,
+                char *buf)
+{
+	return sprintf(buf, "%lu\n", tunables->screen_off_max);
+}
+
+static ssize_t store_screen_off_maxfreq(
+		struct cpufreq_interactive_tunables *tunables,
+                const char *buf, size_t count)
+{
+	int ret;
+	unsigned long val;
+
+	ret = strict_strtoul(buf, 0, &val);
+	if (ret < 0)
+		return ret;
+
+	if (val < 384000)
+		tunables->screen_off_max = DEFAULT_SCREEN_OFF_MAX;
+	else
+		tunables->screen_off_max = val;
+
+	return count;
+}
+
 /*
  * Create show/store routines
  * - sys: One governor instance for complete SYSTEM
@@ -1447,6 +1482,7 @@ show_store_gov_pol_sys(align_windows);
 show_store_gov_pol_sys(fastlane);
 show_store_gov_pol_sys(fastlane_threshold);
 show_store_gov_pol_sys(powersave_bias);
+show_store_gov_pol_sys(screen_off_maxfreq);
 
 #define gov_sys_attr_rw(_name)						\
 static struct global_attr _name##_gov_sys =				\
@@ -1484,6 +1520,7 @@ static struct freq_attr boostpulse_gov_pol =
 	__ATTR(boostpulse, 0200, NULL, store_boostpulse_gov_pol);
 
 gov_sys_pol_attr_rw(powersave_bias);
+gov_sys_pol_attr_rw(screen_off_maxfreq);
 
 /* One Governor instance for entire system */
 static struct attribute *interactive_attributes_gov_sys[] = {
@@ -1505,6 +1542,7 @@ static struct attribute *interactive_attributes_gov_sys[] = {
 	&fastlane_gov_sys.attr,
 	&fastlane_threshold_gov_sys.attr,
 	&powersave_bias_gov_sys.attr,
+	&screen_off_maxfreq_gov_sys.attr,
 	NULL,
 };
 
@@ -1533,6 +1571,7 @@ static struct attribute *interactive_attributes_gov_pol[] = {
 	&fastlane_gov_pol.attr,
 	&fastlane_threshold_gov_pol.attr,
 	&powersave_bias_gov_pol.attr,
+	&screen_off_maxfreq_gov_pol.attr,
 	NULL,
 };
 
@@ -1575,6 +1614,7 @@ static struct cpufreq_interactive_tunables *alloc_tunable(
 	tunables->timer_slack_val = DEFAULT_TIMER_SLACK;
 	tunables->fastlane = false;
 	tunables->fastlane_threshold = 50;
+	tunables->screen_off_max = DEFAULT_SCREEN_OFF_MAX;
 
 	spin_lock_init(&tunables->target_loads_lock);
 	spin_lock_init(&tunables->above_hispeed_delay_lock);
