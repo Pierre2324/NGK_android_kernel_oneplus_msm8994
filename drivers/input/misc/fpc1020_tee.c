@@ -141,6 +141,7 @@ struct fpc1020_data {
 	struct work_struct pm_work;
 	bool irq_enabled;
 	spinlock_t irq_lock;
+	struct completion irq_sent;
 };
 
 extern bool s3320_touch_active(void);
@@ -281,6 +282,7 @@ static ssize_t irq_get(struct device* device,
 	struct fpc1020_data* fpc1020 = dev_get_drvdata(device);
 	bool irq_enabled;
 	int irq;
+    ssize_t count;
 
 	spin_lock(&fpc1020->irq_lock);
 	irq_enabled = fpc1020->irq_enabled;
@@ -288,7 +290,9 @@ static ssize_t irq_get(struct device* device,
 
 	irq = irq_enabled && gpio_get_value(fpc1020->irq_gpio);
 
-	return scnprintf(buffer, PAGE_SIZE, "%i\n", irq);
+	count = scnprintf(buffer, PAGE_SIZE, "%i\n", irq);
+	complete(&fpc1020->irq_sent);
+	return count;
 }
 
 
@@ -1036,6 +1040,12 @@ static irqreturn_t fpc1020_irq_handler(int irq, void *handle)
 
 	sysfs_notify(&fpc1020->dev->kobj, NULL, dev_attr_irq.attr.name);
 
+	reinit_completion(&fpc1020->irq_sent);
+	wait_for_completion_timeout(&fpc1020->irq_sent, msecs_to_jiffies(100));
+
+	if (fpc1020->screen_state)
+		return IRQ_HANDLED;
+
 	wake_lock_timeout(&fpc1020->ttw_wl, msecs_to_jiffies(FPC_TTW_HOLD_TIME));
 
 	if (!fpc1020->screen_state) {
@@ -1208,6 +1218,7 @@ static int fpc1020_probe(struct spi_device *spi)
 
 	irqf = IRQF_TRIGGER_RISING | IRQF_ONESHOT;
 	mutex_init(&fpc1020->lock);
+	init_completion(&fpc1020->irq_sent);
 	rc = devm_request_threaded_irq(dev, gpio_to_irq(fpc1020->irq_gpio),
 			NULL, fpc1020_irq_handler, irqf,
 			dev_name(dev), fpc1020);
