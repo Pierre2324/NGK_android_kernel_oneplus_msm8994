@@ -72,22 +72,20 @@ static int state_notifier_callback(struct notifier_block *this,
 			 * Switch back from noop to the original iosched after a delay
 			 * when the screen is turned on.
 			 */
-			if (delayed_work_pending(&sleep_sched))
-				cancel_delayed_work_sync(&sleep_sched);
 			schedule_delayed_work(&restore_prev,
-				msecs_to_jiffies(RESTORE_DELAY_MS));
+			msecs_to_jiffies(RESTORE_DELAY_MS));
 			break;
+
 		case STATE_NOTIFIER_SUSPEND:
 			/*
 			 * Switch to noop when the screen turns off. Purposely block
 			 * the state notifier chain call in case weird things can happen
 			 * when switching elevators while the screen is off.
 			 */
-			if (delayed_work_pending(&restore_prev))
-				cancel_delayed_work_sync(&restore_prev);
-			schedule_delayed_work(&sleep_sched,
-				msecs_to_jiffies(RESTORE_DELAY_MS));
+			cancel_delayed_work_sync(&restore_prev);
+			change_all_elevators(&req_queues.list, true);
 			break;
+
 		default:
 			break;
 	}
@@ -127,7 +125,6 @@ static int iosched_switcher_core_init(void)
 	int ret = 0;
 
 	INIT_DELAYED_WORK(&restore_prev, restore_prev_fn);
-	INIT_DELAYED_WORK(&sleep_sched, set_sleep_sched_fn);
 	notif.notifier_call = state_notifier_callback;
 	ret = state_register_client(&notif);
 
