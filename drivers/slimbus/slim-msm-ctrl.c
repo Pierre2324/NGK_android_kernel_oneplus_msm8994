@@ -206,7 +206,8 @@ static irqreturn_t msm_slim_interrupt(int irq, void *d)
 		 * Guarantee that interrupt clear bit write goes through before
 		 * signalling completion/exiting ISR
 		 */
-		
+		mb();
+		msm_slim_manage_tx_msgq(dev, false, NULL, 0);
 	}
 	if (stat & MGR_INT_RX_MSG_RCVD) {
 		u32 rx_buf[10];
