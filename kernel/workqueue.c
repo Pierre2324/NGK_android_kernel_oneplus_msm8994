@@ -4230,6 +4230,15 @@ struct workqueue_struct *__alloc_workqueue_key(const char *fmt,
 	/* see the comment above the definition of WQ_POWER_EFFICIENT */
 	if ((flags & WQ_POWER_EFFICIENT) && wq_power_efficient)
 		flags |= WQ_UNBOUND;
+	/*
+	 * Unbound && max_active == 1 used to imply ordered, which is no
+	 * longer the case on NUMA machines due to per-node pools.  While
+	 * alloc_ordered_workqueue() is the right way to create an ordered
+	 * workqueue, keep the previous behavior to avoid subtle breakages
+	 * on NUMA.
+	 */
+	if ((flags & WQ_UNBOUND) && max_active == 1)
+		flags |= __WQ_ORDERED;
 
 	/* allocate wq and format name */
 	if (flags & WQ_UNBOUND)
