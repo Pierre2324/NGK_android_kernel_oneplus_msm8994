@@ -14,6 +14,7 @@
  ** 	<author>	<data>			<desc>
  **  chenggang.li@BSP.TP modified for oem 2014-07-30 14005 tp_driver
  ************************************************************************************/
+#include <linux/qpnp/pwm.h>
 #include <linux/of_gpio.h>
 #include <linux/irq.h>
 #include <linux/i2c.h>
@@ -58,6 +59,7 @@
 #include <linux/boot_mode.h>
 #include <linux/project_info.h>
 #include "synaptics_baseline.h"
+
 /*------------------------------------------------Global Define--------------------------------------------*/
 
 #define TP_UNKNOWN 0
@@ -89,6 +91,8 @@
 
 #define TEST_MAGIC1 0x494D494C
 #define TEST_MAGIC2 0x474D4954
+
+#define VIBRATE 25
 
 struct test_header {
 	unsigned int magic1;
@@ -1224,6 +1228,10 @@ static void gesture_judge(struct synaptics_ts_data *ts)
 
     TPD_DEBUG("gesture suport LeftVee:%d RightVee:%d DouSwip:%d Circle:%d UpVee:%d DownVee:%d DouTap:%d\n",\
         LeftVee_gesture,RightVee_gesture,DouSwip_gesture,Circle_gesture,UpVee_gesture,DownVee_gesture,DouTap_gesture);
+
+	if(gesture == DouTap && DouTap_gesture)
+		call_vibrate(VIBRATE);
+
 	if((gesture == DouTap && DouTap_gesture)||(gesture == RightVee && RightVee_gesture)\
         ||(gesture == LeftVee && LeftVee_gesture)||(gesture == UpVee && UpVee_gesture)||(gesture == DownVee && DownVee_gesture)\
         ||(gesture == Circle && Circle_gesture)||(gesture == DouSwip && DouSwip_gesture)){
