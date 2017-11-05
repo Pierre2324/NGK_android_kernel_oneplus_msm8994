@@ -136,6 +136,8 @@ struct fpc1020_data {
 	struct work_struct pm_work;
 };
 
+extern bool s1302_is_keypad_stopped(void);
+
 static int fpc1020_request_named_gpio(struct fpc1020_data *fpc1020,
 		const char *label, int *gpio)
 {
@@ -295,11 +297,18 @@ static ssize_t report_home_set(struct device *dev,
 	struct device_attribute *attr, const char *buf, size_t count)
 {
 	struct  fpc1020_data *fpc1020 = dev_get_drvdata(dev);
+	
+	bool ignore_keypad;
+
+	if (s1302_is_keypad_stopped() || virtual_key_enable)
+		ignore_keypad = true;
+	else
+		ignore_keypad = false;
         
 	if (!strncmp(buf, "down", strlen("down")))
 	{
 #ifdef VENDOR_EDIT //WayneChang, 2015/12/02, add for key to abs, simulate key in abs through virtual key system
-		if(!virtual_key_enable){
+		if(!ignore_keypad){
 	 		input_report_key(fpc1020->input_dev,
 							KEY_HOME, 1);
 			input_sync(fpc1020->input_dev);
@@ -309,7 +318,7 @@ static ssize_t report_home_set(struct device *dev,
 	else if (!strncmp(buf, "up", strlen("up")))
 	{
 #ifdef VENDOR_EDIT //WayneChang, 2015/12/02, add for key to abs, simulate key in abs through virtual key system
-		if(!virtual_key_enable){
+		if(!ignore_keypad){
 			input_report_key(fpc1020->input_dev,
 							KEY_HOME, 0);
 			input_sync(fpc1020->input_dev);
