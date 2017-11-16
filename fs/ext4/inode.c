@@ -2330,7 +2330,7 @@ static int write_cache_pages_da(handle_t *handle,
 	*done_index = index;
 	while (index <= end) {
 		nr_pages = pagevec_lookup_range_tag(&pvec, mapping, &index, end,
-				tag, PAGEVEC_SIZE);
+				tag);
 		if (nr_pages == 0)
 			return 0;
 
