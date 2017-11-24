@@ -303,6 +303,8 @@ static int F54_ANALOG_CONTROL_BASE;//0x0d
 static int F54_ANALOG_DATA_BASE;//0x00
 #endif
 
+int vibrate_userspace = 1;
+
 /*------------------------------------------Fuction Declare----------------------------------------------*/
 static int synaptics_i2c_suspend(struct device *dev);
 static int synaptics_i2c_resume(struct device *dev);
@@ -1229,7 +1231,7 @@ static void gesture_judge(struct synaptics_ts_data *ts)
     TPD_DEBUG("gesture suport LeftVee:%d RightVee:%d DouSwip:%d Circle:%d UpVee:%d DownVee:%d DouTap:%d\n",\
         LeftVee_gesture,RightVee_gesture,DouSwip_gesture,Circle_gesture,UpVee_gesture,DownVee_gesture,DouTap_gesture);
 
-	if(gesture == DouTap && DouTap_gesture)
+	if(gesture == DouTap && DouTap_gesture && vibrate_userspace)
 		call_vibrate(VIBRATE);
 
 	if((gesture == DouTap && DouTap_gesture)||(gesture == RightVee && RightVee_gesture)\
@@ -1534,6 +1536,28 @@ static ssize_t double_tap_enable_write_func(struct file *file, const char __user
 	return count;
 }
 
+static ssize_t vibrate_dttw_read_func(struct file *file, char __user *user_buf, size_t count, loff_t *ppos)
+{
+	int ret = 0;
+	char page[PAGESIZE];
+	ret = sprintf(page, "%d\n", vibrate_userspace);
+	ret = simple_read_from_buffer(user_buf, count, ppos, page, strlen(page));
+	return ret;
+}
+
+static ssize_t vibrate_dttw_write_func(struct file *file, const char __user *buf, size_t count, loff_t *ppos)
+{
+	int ret = 0;
+
+	sscanf(buf, "%d", &ret);
+
+	vibrate_userspace = ret;
+	if(ret == 1 || ret == 0)
+		vibrate_userspace = ret;
+	
+	return count;
+}
+
 static ssize_t letter_o_enable_read_func(struct file *file, char __user *user_buf, size_t count, loff_t *ppos)
 {
 	int ret = 0;
@@ -1744,6 +1768,13 @@ static const struct file_operations coordinate_proc_fops = {
 static const struct file_operations double_tap_enable_proc_fops = {
 	.write = double_tap_enable_write_func,
 	.read =  double_tap_enable_read_func,
+	.open = simple_open,
+	.owner = THIS_MODULE,
+};
+
+static const struct file_operations vibrate_dttw_proc_fops = {
+	.write = vibrate_dttw_write_func,
+	.read =  vibrate_dttw_read_func,
 	.open = simple_open,
 	.owner = THIS_MODULE,
 };
@@ -2860,6 +2891,12 @@ static int init_synaptics_proc(void)
 	if(prEntry_tmp == NULL){
 		ret = -ENOMEM;
 		TPD_ERR("Couldn't create double_tap_enable\n");
+	}
+	
+	prEntry_tmp = proc_create("vibrate_dt2w", 0666, prEntry_tp, &vibrate_dttw_proc_fops);
+	if(prEntry_tmp == NULL){
+		ret = -ENOMEM;
+		TPD_ERR("Couldn't create vibrate_dttw\n");
 	}
 
 	prEntry_tmp = proc_create("double_swipe_enable", 0666, prEntry_tp, &double_swipe_enable_proc_fops);
