@@ -269,6 +269,8 @@ static struct kmem_cache *pwq_cache;
 static int wq_numa_tbl_len;		/* highest possible NUMA node id + 1 */
 static cpumask_var_t *wq_numa_possible_cpumask;
 					/* possible CPUs of each node */
+					
+static bool wq_numa_enabled;		/* unbound NUMA affinity enabled */
 
 static bool wq_disable_numa;
 module_param_named(disable_numa, wq_disable_numa, bool, 0444);
@@ -280,11 +282,7 @@ static bool wq_power_efficient = true;
 static bool wq_power_efficient;
 #endif
 
-<<<<<<< HEAD
 module_param_named(power_efficient, wq_power_efficient, bool, 0644);
-=======
-module_param_named(power_efficient, wq_power_efficient, bool, 0444);
->>>>>>> ed02e264baee... workqueues: Introduce new flag WQ_POWER_EFFICIENT for power oriented workqueues
 
 static bool wq_numa_enabled;		/* unbound NUMA affinity enabled */
 
