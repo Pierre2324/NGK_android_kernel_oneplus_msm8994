@@ -57,6 +57,11 @@
 #include "synaptics_s1302_redremote.h"
 #include <linux/boot_mode.h>
 #include <linux/project_info.h>
+
+#ifdef CONFIG_BOEFFLA_TOUCH_KEY_CONTROL
+#include <linux/boeffla_touchkey_control.h>
+#endif
+
 /*------------------------------------------------Global Define--------------------------------------------*/
 #define TP_TEST_ENABLE 1
 #define SYNAPTICS_NAME "synaptics"
@@ -189,6 +194,8 @@ static const struct dev_pm_ops synaptic_pm_ops = {
 	.resume = NULL,
 #endif
 };
+
+extern bool s3320_touch_active(void);
 
 //add by jiachenghui for boot time optimize 2015-5-13
 #ifdef VENDOR_EDIT
@@ -752,14 +759,15 @@ static void synaptics_ts_report(struct synaptics_ts_data *ts )
         //goto END;
     }
     if( inte & 0x10) {
+#ifdef CONFIG_BOEFFLA_TOUCH_KEY_CONTROL
+		btkc_touch_button();
+#endif
 #ifdef VENDOR_EDIT //WayneChang, 2015/12/29, add flag to enable virtual key
-	if(!virtual_key_enable){
-		if (!ts->stop_keypad)
-			int_key(ts);
-	}
-#else
-    if (!ts->stop_keypad)
+	if(!virtual_key_enable && !s3320_touch_active())
 		int_key(ts);
+	
+#else
+	int_key(ts);
 #endif
     }
 END:
@@ -1515,72 +1523,7 @@ static int synaptics_parse_dts(struct device *dev, struct synaptics_ts_data *ts)
 	}
 	return rc;
 }
-static void synaptics_input_event(struct input_handle *handle,
-		unsigned int type, unsigned int code, int value)
-{
-	struct synaptics_ts_data *ts = tc_g;
 
-	if (code != BTN_TOOL_FINGER)
-		return;
-
-	/* Disable capacitive keys when user's finger is on touchscreen */
-	ts->stop_keypad = value;
-}
-
-static int synaptics_input_connect(struct input_handler *handler,
-		struct input_dev *dev, const struct input_device_id *id)
-{
-	struct input_handle *handle;
-	int ret;
-
-	handle = kzalloc(sizeof(*handle), GFP_KERNEL);
-	if (!handle)
-		return -ENOMEM;
-
-	handle->dev = dev;
-	handle->handler = handler;
-	handle->name = "s1302_handle";
-
-	ret = input_register_handle(handle);
-	if (ret)
-		goto err2;
-
-	ret = input_open_device(handle);
-	if (ret)
-		goto err1;
-
-	return 0;
-
-err1:
-	input_unregister_handle(handle);
-err2:
-	kfree(handle);
-	return ret;
-}
-
-static void synaptics_input_disconnect(struct input_handle *handle)
-{
-	input_close_device(handle);
-	input_unregister_handle(handle);
-	kfree(handle);
-}
-
-static const struct input_device_id synaptics_input_ids[] = {
-	{
-		.flags = INPUT_DEVICE_ID_MATCH_KEYBIT,
-		.keybit = { [BIT_WORD(BTN_TOOL_FINGER)] =
-				BIT_MASK(BTN_TOOL_FINGER) },
-	},
-	{ },
-};
-
-static struct input_handler synaptics_input_handler = {
-	.event		= synaptics_input_event,
-	.connect	= synaptics_input_connect,
-	.disconnect	= synaptics_input_disconnect,
-	.name		= "syna_input_handler",
-	.id_table	= synaptics_input_ids,
-};
 
 static int synaptics_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
@@ -1658,6 +1601,7 @@ static int synaptics_ts_probe(struct i2c_client *client, const struct i2c_device
 #if defined(CONFIG_FB)
 	ts->suspended = 0;
 	ts->fb_notif.notifier_call = fb_notifier_callback;
+	ts->fb_notif.priority = INT_MAX;
 	ret = fb_register_client(&ts->fb_notif);
 	if(ret)
 		TPD_ERR("Unable to register fb_notifier: %d\n", ret);
@@ -1700,10 +1644,6 @@ static int synaptics_ts_probe(struct i2c_client *client, const struct i2c_device
 		register_remote_device_s1302(premote_data);
     }
 #endif
-
-	ret = input_register_handler(&synaptics_input_handler);
-	if (ret)
-		TPD_ERR("%s: Failed to register input handler\n", __func__);
 
 	TPDTM_DMESG("synaptics_ts_probe s1302: normal end\n");
 	return 0;
@@ -1797,13 +1737,6 @@ static int synaptics_ts_resume(struct device *dev)
 ERR_RESUME:
 	mutex_unlock(&ts->mutex);
 	return 0;
-}
-
-bool s1302_is_keypad_stopped(void)
-{
-	struct synaptics_ts_data *ts = tc_g;
-
-	return ts->stop_keypad;
 }
 
 #if defined(CONFIG_FB)
