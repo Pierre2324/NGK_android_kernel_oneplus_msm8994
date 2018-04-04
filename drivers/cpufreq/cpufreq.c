@@ -35,7 +35,7 @@ static unsigned int min_freq_hardlimit[2] = {0, 0};
 static unsigned int max_freq_hardlimit[2] = {0, 0};
 
 #define CONFIG_MSM_CPU_FREQ_MIN_GROUP1 302400
-#define CONFIG_MSM_CPU_FREQ_MAX_GROUP1 1804800
+#define CONFIG_MSM_CPU_FREQ_MAX_GROUP1 1900800
 #define CONFIG_MSM_CPU_FREQ_MIN_GROUP2 302400
 #define CONFIG_MSM_CPU_FREQ_MAX_GROUP2 2208000
 
