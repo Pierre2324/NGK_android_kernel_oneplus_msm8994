@@ -30,6 +30,20 @@
 #include <linux/tick.h>
 #include <trace/events/power.h>
 
+// the hard limits are not per core but per cpu cluster
+static unsigned int min_freq_hardlimit[2] = {0, 0};
+static unsigned int max_freq_hardlimit[2] = {0, 0};
+
+#define CONFIG_MSM_CPU_FREQ_MIN_GROUP1 302400
+#define CONFIG_MSM_CPU_FREQ_MAX_GROUP1 1804800
+#define CONFIG_MSM_CPU_FREQ_MIN_GROUP2 302400
+#define CONFIG_MSM_CPU_FREQ_MAX_GROUP2 2208000
+
+/* HACK: Prevent big cluster turned off when changing governor settings. */
+#ifdef CONFIG_MSM_HOTPLUG
+#include <linux/workqueue.h>
+#endif
+
 /**
  * The "cpufreq driver" - the arch- or hardware-dependent low
  * level driver of CPUFreq support, and its spinlock. This lock
