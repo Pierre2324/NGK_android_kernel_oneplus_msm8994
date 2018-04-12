@@ -149,6 +149,7 @@ f2fs_bug_on(F2FS_P_SB(page), PageWriteback(page));
 
 	/* write data page to try to make data consistent */
 	set_page_writeback(page);
+	ClearPageError(page);
 	fio.old_blkaddr = dn->data_blkaddr;
 	set_inode_flag(dn->inode, FI_HOT_DATA);
 	write_data_page(dn, &fio);
