@@ -1017,4 +1017,3 @@
 		regulator-name = "smbcharger_external_otg";
 	};
 };
-
