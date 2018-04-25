@@ -63,7 +63,7 @@
 #define FPC1020_RESET_LOW_US 1000
 #define FPC1020_RESET_HIGH1_US 100
 #define FPC1020_RESET_HIGH2_US 1250
-#define FPC_TTW_HOLD_TIME 1000
+#define FPC_TTW_HOLD_TIME 500
 
 /* Unused key value to avoid interfering with active keys */
 #define KEY_FINGERPRINT 0x2ee
