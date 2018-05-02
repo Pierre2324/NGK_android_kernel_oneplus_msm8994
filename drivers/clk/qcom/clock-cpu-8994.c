@@ -1638,7 +1638,7 @@ void set_voltages(const char *buf)
 			dev_pm_opp_set_voltage(orioop, 
 				((unsigned int)min(
 					(unsigned int)(max((unsigned int)(volt*1000),
-					(unsigned int)650000)), (unsigned int)1330000)));
+					(unsigned int)700000)), (unsigned int)1300000)));
 
 			ret = sscanf(buf, "%s", size_cur);
 			buf += (strlen(size_cur)+1);
@@ -1662,7 +1662,7 @@ void set_voltages(const char *buf)
 			dev_pm_opp_set_voltage(orioop,
 			((unsigned int)min(
 				(unsigned int)(max((unsigned int)(volt*1000),
-					(unsigned int)650000)), (unsigned int)1330000)));
+					(unsigned int)700000)), (unsigned int)1300000)));
 
 			ret = sscanf(buf, "%s", size_cur);
 			buf += (strlen(size_cur)+1);

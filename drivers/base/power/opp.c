@@ -163,7 +163,7 @@ void dev_pm_opp_set_voltage(struct opp *opp, unsigned int voltage)
 	else
 	{
 		/* Do last checking procedure for a valid voltage */
-		if((unsigned long)voltage <= (unsigned long)1330000 && (unsigned long)voltage >= (unsigned long)650000)
+		if((unsigned long)voltage <= (unsigned long)1300000 && (unsigned long)voltage >= (unsigned long)700000)
 		{
 			tmp_opp->u_volt = (unsigned long)voltage;
 		}
