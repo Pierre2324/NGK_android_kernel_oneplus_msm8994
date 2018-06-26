@@ -366,6 +366,12 @@ config SND_SOC_WCD9306
 
 config SND_SOC_WCD9330
         tristate
+        select SND_SOC_WCD9330_MBHC
+
+config SND_SOC_WCD9330_MBHC
+        tristate
+        depends on SND_SOC_WCD9330
+        select SND_SOC_WCD_MBHC
 
 config SND_SOC_WCD9XXX
 	tristate
