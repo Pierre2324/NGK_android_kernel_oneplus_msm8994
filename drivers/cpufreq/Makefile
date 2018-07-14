@@ -18,6 +18,9 @@ obj-$(CONFIG_FINGERPRINT_BOOST)		+= fp-boost.o
 
 obj-$(CONFIG_GENERIC_CPUFREQ_CPU0)	+= cpufreq-cpu0.o
 
+# CPU wake boost
+obj-$(CONFIG_CPU_WAKE_BOOST)		+= cpu_wake_boost.o
+
 ##################################################################################
 # x86 drivers.
 # Link order matters. K8 is preferred to ACPI because of firmware bugs in early
