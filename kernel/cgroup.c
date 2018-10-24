@@ -60,6 +60,14 @@
 #include <linux/poll.h>
 #include <linux/flex_array.h> /* used in cgroup_attach_task */
 #include <linux/kthread.h>
+<<<<<<< HEAD
+=======
+#include <linux/delay.h>
+#include <linux/cpuset.h>
+#include <linux/atomic.h>
+#include <linux/cpu_input_boost.h>
+#include <linux/devfreq_boost.h>
+>>>>>>> e13e2c455412... kernel: Boost CPU to the max when Pixel launcher becomes a top app
 
 #include <linux/atomic.h>
 #include "sched/sched.h"
@@ -2183,7 +2191,19 @@ retry_find_task:
 		}
 	}
 
+<<<<<<< HEAD
 	ret = cgroup_attach_task(cgrp, tsk, threadgroup);
+=======
+	/* Boost CPU to the max for 500 ms when launcher becomes a top app */
+	if (!memcmp(tsk->comm, "s.nexuslauncher", sizeof("s.nexuslauncher")) &&
+		!memcmp(cgrp->kn->name, "top-app", sizeof("top-app")) && !ret) {
+		cpu_input_boost_kick_max(500);
+		devfreq_boost_kick_max(DEVFREQ_MSM_CPUBW, 500);
+	}
+
+	put_task_struct(tsk);
+	goto out_unlock_threadgroup;
+>>>>>>> e13e2c455412... kernel: Boost CPU to the max when Pixel launcher becomes a top app
 
 	threadgroup_unlock(tsk);
 
