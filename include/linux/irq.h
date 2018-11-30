@@ -166,6 +166,7 @@ struct irq_data {
  * IRQD_IRQ_DISABLED		- Disabled state of the interrupt
  * IRQD_IRQ_MASKED		- Masked state of the interrupt
  * IRQD_IRQ_INPROGRESS		- In progress state of the interrupt
+ * IRQD_AFFINITY_MANAGED	- Affinity is auto-managed by the kernel
  */
 enum {
 	IRQD_TRIGGER_MASK		= 0xf,
@@ -179,6 +180,7 @@ enum {
 	IRQD_IRQ_DISABLED		= (1 << 16),
 	IRQD_IRQ_MASKED			= (1 << 17),
 	IRQD_IRQ_INPROGRESS		= (1 << 18),
+	IRQD_AFFINITY_MANAGED		= (1 << 21),
 };
 
 static inline bool irqd_is_setaffinity_pending(struct irq_data *d)
@@ -248,6 +250,11 @@ static inline bool irqd_irq_masked(struct irq_data *d)
 static inline bool irqd_irq_inprogress(struct irq_data *d)
 {
 	return d->state_use_accessors & IRQD_IRQ_INPROGRESS;
+}
+
+static inline bool irqd_affinity_is_managed(struct irq_data *d)
+{
+	return d->state_use_accessors & IRQD_AFFINITY_MANAGED;
 }
 
 /*
