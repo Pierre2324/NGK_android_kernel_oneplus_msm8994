@@ -72,6 +72,7 @@
 #include <linux/uprobes.h>
 #include <linux/aio.h>
 #include <linux/devfreq_boost.h>
+#include <linux/cpu_boost.h>
 
 #include <asm/pgtable.h>
 #include <asm/pgalloc.h>
@@ -1645,9 +1646,10 @@ long do_fork(unsigned long clone_flags,
 	int trace = 0;
 	long nr;
 
-	/* Boost Devfreq Bandwidth Device to the max for 2500 ms when userspace launches an app */
+	/* Boost Devfreq Bandwidth Device to the max for 2500 ms and CPU freq to max when userspace launches an app */
 	if (is_zygote_pid(current->pid)){
 		devfreq_boost_kick_max(DEVFREQ_MSM_CPUBW, 2500);
+		do_input_boost_max();
 	}
 
 	/*
