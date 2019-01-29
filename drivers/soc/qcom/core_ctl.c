@@ -663,6 +663,7 @@ static bool eval_need(struct cpu_data *f)
 	unsigned int need_cpus = 0, last_need, thres_idx;
 	int ret = 0;
 	bool need_flag = false;
+	s64 elapsed;
 	s64 now;
 
 	if (unlikely(!f->inited))
@@ -689,7 +690,7 @@ static bool eval_need(struct cpu_data *f)
 		return 0;
 	}
 
-	s64 elapsed = now - f->need_ts;
+	elapsed = now - f->need_ts;
 	if (need_cpus > last_need) {
 		if (elapsed >= f->online_delay_ms) {
 			ret = 1;
@@ -1079,11 +1080,7 @@ static int group_init(struct cpumask *mask)
 	f->need_cpus  = f->num_cpus;
 	f->avail_cpus  = f->num_cpus;
 	f->offline_delay_ms = 100;
-<<<<<<< HEAD
 	f->online_delay_ms = 0;
-=======
-	f->online_delay_ms = 500;
->>>>>>> de382f5e0a2... core_ctl: Add online delay tunable
 	f->task_thres = UINT_MAX;
 	f->nrrun = f->num_cpus;
 	INIT_LIST_HEAD(&f->lru);
