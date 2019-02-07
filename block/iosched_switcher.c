@@ -30,7 +30,6 @@ struct req_queue_data {
 };
 
 static struct delayed_work restore_prev;
-static struct delayed_work sleep_sched;
 static DEFINE_SPINLOCK(init_lock);
 static struct req_queue_data req_queues = {
 	.list = LIST_HEAD_INIT(req_queues.list),
@@ -96,11 +95,6 @@ static int state_notifier_callback(struct notifier_block *this,
 static void restore_prev_fn(struct work_struct *work)
 {
 	change_all_elevators(&req_queues.list, false);
-}
-
-static void set_sleep_sched_fn(struct work_struct *work)
-{
-	change_all_elevators(&req_queues.list, true);
 }
 
 int init_iosched_switcher(struct request_queue *q)
