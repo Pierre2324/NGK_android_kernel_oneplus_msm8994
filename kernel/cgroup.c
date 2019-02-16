@@ -2189,7 +2189,7 @@ retry_find_task:
 
 	/* Boost CPU to the max for 500 ms when launcher becomes a top app */
 	if (!memcmp(tsk->comm, "s.nexuslauncher", sizeof("s.nexuslauncher")) &&
-		!memcmp(cgrp->kn->name, "top-app", sizeof("top-app")) && !ret) {
+		!memcmp(cgrp->name, "top-app", sizeof("top-app")) && !ret) {
 		do_input_boost_max();
 		devfreq_boost_kick_max(DEVFREQ_MSM_CPUBW, 2500);
 	}
