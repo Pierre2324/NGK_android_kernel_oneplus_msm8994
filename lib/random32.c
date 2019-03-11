@@ -1,36 +1,26 @@
 /*
   This is a maximally equidistributed combined Tausworthe generator
   based on code from GNU Scientific Library 1.5 (30 Jun 2004)
-
    x_n = (s1_n ^ s2_n ^ s3_n)
-
    s1_{n+1} = (((s1_n & 4294967294) <<12) ^ (((s1_n <<13) ^ s1_n) >>19))
    s2_{n+1} = (((s2_n & 4294967288) << 4) ^ (((s2_n << 2) ^ s2_n) >>25))
    s3_{n+1} = (((s3_n & 4294967280) <<17) ^ (((s3_n << 3) ^ s3_n) >>11))
-
    The period of this generator is about 2^88.
-
    From: P. L'Ecuyer, "Maximally Equidistributed Combined Tausworthe
    Generators", Mathematics of Computation, 65, 213 (1996), 203--213.
-
    This is available on the net from L'Ecuyer's home page,
-
    http://www.iro.umontreal.ca/~lecuyer/myftp/papers/tausme.ps
    ftp://ftp.iro.umontreal.ca/pub/simulation/lecuyer/papers/tausme.ps
-
    There is an erratum in the paper "Tables of Maximally
    Equidistributed Combined LFSR Generators", Mathematics of
    Computation, 68, 225 (1999), 261--269:
    http://www.iro.umontreal.ca/~lecuyer/myftp/papers/tausme2.ps
-
         ... the k_j most significant bits of z_j must be non-
         zero, for each j. (Note: this restriction also applies to the
         computer code given in [4], but was mistakenly not mentioned in
         that paper.)
-
    This affects the seeding procedure by imposing the requirement
    s1 > 1, s2 > 7, s3 > 15.
-
 */
 
 #include <linux/types.h>
@@ -38,6 +28,7 @@
 #include <linux/export.h>
 #include <linux/jiffies.h>
 #include <linux/random.h>
+#include <linux/timer.h>
 
 static DEFINE_PER_CPU(struct rnd_state, net_rand_state);
 
@@ -142,6 +133,7 @@ void prandom_seed(u32 entropy)
 	for_each_possible_cpu (i) {
 		struct rnd_state *state = &per_cpu(net_rand_state, i);
 		state->s1 = __seed(state->s1 ^ entropy, 2);
+		prandom_u32_state(state);
 	}
 }
 EXPORT_SYMBOL(prandom_seed);
@@ -174,11 +166,32 @@ static int __init prandom_init(void)
 }
 core_initcall(prandom_init);
 
+static void __prandom_timer(unsigned long dontcare);
+static DEFINE_TIMER(seed_timer, __prandom_timer, 0, 0);
+
+static void __prandom_timer(unsigned long dontcare)
+{
+	u32 entropy;
+
+	get_random_bytes(&entropy, sizeof(entropy));
+	prandom_seed(entropy);
+	/* reseed every ~60 seconds, in [40 .. 80) interval with slack */
+	seed_timer.expires = jiffies + (40 * HZ + (prandom_u32() % (40 * HZ)));
+	add_timer(&seed_timer);
+}
+
+static void prandom_start_seed_timer(void)
+{
+	set_timer_slack(&seed_timer, HZ);
+	seed_timer.expires = jiffies + 40 * HZ;
+	add_timer(&seed_timer);
+}
+
 /*
  *	Generate better values after random number generator
  *	is fully initialized.
  */
-static int __init prandom_reseed(void)
+static void __prandom_reseed(bool late)
 {
 	int i;
 	unsigned long flags;
@@ -214,6 +227,19 @@ static int __init prandom_reseed(void)
 		/* mix it in */
 		prandom_u32_state(state);
 	}
+out:
+	spin_unlock_irqrestore(&lock, flags);
+}
+
+void prandom_reseed_late(void)
+{
+	__prandom_reseed(true);
+}
+
+static int __init prandom_reseed(void)
+{
+	__prandom_reseed(false);
+	prandom_start_seed_timer();
 	return 0;
 }
 late_initcall(prandom_reseed);
