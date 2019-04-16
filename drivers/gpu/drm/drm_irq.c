@@ -315,7 +315,7 @@ static void drm_irq_vgaarb_nokms(void *cookie, bool state)
 int drm_irq_install(struct drm_device *dev)
 {
 	int ret;
-	unsigned long sh_flags = IRQF_PERF_CRITICAL;
+	unsigned long sh_flags = 0;
 	char *irqname;
 
 	if (!drm_core_check_feature(dev, DRIVER_HAVE_IRQ))
