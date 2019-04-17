@@ -56,8 +56,6 @@
  * IRQF_NO_THREAD - Interrupt cannot be threaded
  * IRQF_EARLY_RESUME - Resume IRQ early during syscore instead of at device
  *                resume time.
- * IRQF_PERF_CRITICAL - Interrupt is critical to the overall performance of the
- * 		  system and should be processed on a fast CPU.
  */
 #define IRQF_DISABLED		0x00000020
 #define IRQF_SHARED		0x00000080
@@ -71,7 +69,6 @@
 #define IRQF_FORCE_RESUME	0x00008000
 #define IRQF_NO_THREAD		0x00010000
 #define IRQF_EARLY_RESUME	0x00020000
-#define IRQF_PERF_CRITICAL	0x00080000
 
 #define IRQF_TIMER		(__IRQF_TIMER | IRQF_NO_SUSPEND | IRQF_NO_THREAD)
 
@@ -194,8 +191,6 @@ extern int check_wakeup_irqs(void);
 #else
 static inline int check_wakeup_irqs(void) { return 0; }
 #endif
-extern void unaffine_perf_irqs(void);
-extern void reaffine_perf_irqs(void);
 
 #if defined(CONFIG_SMP)
 

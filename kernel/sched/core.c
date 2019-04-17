@@ -7135,22 +7135,8 @@ void __cpuinit init_idle(struct task_struct *idle, int cpu)
 }
 
 #ifdef CONFIG_SMP
-
-static const struct cpumask *
-get_adjusted_cpumask(const struct task_struct *p,
-		     const struct cpumask *orig_mask)
-{
-	/* Force all performance-critical kthreads onto the big cluster */
-	if (p->flags & PF_PERF_CRITICAL)
-		return cpu_perf_mask;
-
-	return orig_mask;
-}
-
 void do_set_cpus_allowed(struct task_struct *p, const struct cpumask *new_mask)
 {
-	new_mask = get_adjusted_cpumask(p, new_mask);
-
 	if (p->sched_class && p->sched_class->set_cpus_allowed)
 		p->sched_class->set_cpus_allowed(p, new_mask);
 
@@ -7187,8 +7173,6 @@ int set_cpus_allowed_ptr(struct task_struct *p, const struct cpumask *new_mask)
 	struct rq *rq;
 	unsigned int dest_cpu;
 	int ret = 0;
-
-	new_mask = get_adjusted_cpumask(p, new_mask);
 
 	rq = task_rq_lock(p, &flags);
 
