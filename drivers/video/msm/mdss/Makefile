@@ -56,3 +56,4 @@ obj-$(CONFIG_FB_MSM_MDSS) += mdss_livedisplay.o
 
 obj-$(CONFIG_FB_MSM_MDSS_KCAL_CTRL) += mdss_mdp_kcal_ctrl.o
 obj-$(CONFIG_KLAPSE) += klapse.o
+CFLAGS_mdss_mdp_overlay.o += -Wframe-larger-than=8192
