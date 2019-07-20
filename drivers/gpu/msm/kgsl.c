@@ -3938,6 +3938,14 @@ done:
 
 static long kgsl_ioctl(struct file *filep, unsigned int cmd, unsigned long arg)
 {
+    	struct kgsl_device_private *dev_priv = filep->private_data;
+	struct kgsl_device *device = dev_priv->device;
+	struct adreno_device *adreno_dev = ADRENO_DEVICE(device);
+
+	if (cmd == IOCTL_KGSL_CMDSTREAM_FREEMEMONTIMESTAMP_CTXTID &&
+	    READ_ONCE(device->state) != KGSL_STATE_ACTIVE)
+		queue_work(device->work_queue, &adreno_dev->pwr_on_work);
+
 	return kgsl_ioctl_helper(filep, cmd, kgsl_ioctl_funcs,
 				ARRAY_SIZE(kgsl_ioctl_funcs), arg);
 }
