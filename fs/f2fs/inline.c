@@ -136,7 +136,7 @@ int f2fs_convert_inline_page(struct dnode_of_data *dn, struct page *page)
 		return -EINVAL;
 	}
 
-	f2fs_bug_on(F2FS_P_SB(page), PageWriteback(page));
+f2fs_bug_on(F2FS_P_SB(page), PageWriteback(page));
 
 	read_inline_data(page, dn->inode_page);
 	set_page_dirty(page);

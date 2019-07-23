@@ -46,6 +46,7 @@ struct vfsmount;
 struct cred;
 struct swap_info_struct;
 struct seq_file;
+struct workqueue_struct;
 struct fscrypt_info;
 struct fscrypt_operations;
 
@@ -622,6 +623,15 @@ struct inode {
 
 #if IS_ENABLED(CONFIG_FS_ENCRYPTION)
 	struct fscrypt_info	*i_crypt_info;
+#endif
+
+	void			*i_private; /* fs or device private pointer */
+#ifdef CONFIG_SECURITY_SELINUX
+	/*
+	 * This needs to be at the end so its size won't cause the rest of the
+	 * struct to be broken across cachelines, thereby wrecking performance.
+	 */
+	struct inode_security_struct i_security[1];
 #endif
 
 	void			*i_private; /* fs or device private pointer */
