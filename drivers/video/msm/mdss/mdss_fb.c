@@ -1511,7 +1511,7 @@ void mdss_fb_update_backlight(struct msm_fb_data_type *mfd)
 
 static int mdss_fb_start_disp_thread(struct msm_fb_data_type *mfd)
 {
-	const unsigned long allowed_cpus = 0x3;
+	const unsigned long allowed_cpus = 0xF;
 	int ret;
 
 	pr_debug("%pS: start display thread fb%d\n",
