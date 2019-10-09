@@ -138,7 +138,8 @@ static inline int ext4_begin_ordered_truncate(struct inode *inode,
 						   new_size);
 }
 
-static void ext4_invalidatepage(struct page *page, unsigned long offset);
+static void ext4_invalidatepage(struct page *page, unsigned int offset,
+				unsigned int length);
 static int __ext4_journalled_writepage(struct page *page, unsigned int len);
 static int ext4_bh_delay_or_unwritten(handle_t *handle, struct buffer_head *bh);
 static int ext4_discard_partial_page_buffers_no_lock(handle_t *handle,
@@ -448,8 +449,7 @@ static pgoff_t ext4_num_dirty_pages(struct inode *inode, pgoff_t idx,
 	while (!done) {
 		index = idx;
 		nr_pages = pagevec_lookup_tag(&pvec, mapping, &index,
-					      PAGECACHE_TAG_DIRTY,
-					      (pgoff_t)PAGEVEC_SIZE);
+					      PAGECACHE_TAG_DIRTY);
 		if (nr_pages == 0)
 			break;
 		for (i = 0; i < nr_pages; i++) {
@@ -1420,20 +1420,27 @@ static void ext4_da_release_space(struct inode *inode, int to_free)
 }
 
 static void ext4_da_page_release_reservation(struct page *page,
-					     unsigned long offset)
+					     unsigned int offset,
+					     unsigned int length)
 {
 	int to_release = 0, contiguous_blks = 0;
 	struct buffer_head *head, *bh;
 	unsigned int curr_off = 0;
 	struct inode *inode = page->mapping->host;
 	struct ext4_sb_info *sbi = EXT4_SB(inode->i_sb);
+	unsigned int stop = offset + length;
 	int num_clusters;
 	ext4_fsblk_t lblk;
+
+	BUG_ON(stop > PAGE_CACHE_SIZE || stop < length);
 
 	head = page_buffers(page);
 	bh = head;
 	do {
 		unsigned int next_off = curr_off + bh->b_size;
+
+		if (next_off > stop)
+			break;
 
 		if ((offset <= curr_off) && (buffer_delay(bh))) {
 			to_release++;
@@ -1620,7 +1627,7 @@ static void ext4_da_block_invalidatepages(struct mpage_da_data *mpd)
 				break;
 			BUG_ON(!PageLocked(page));
 			BUG_ON(PageWriteback(page));
-			block_invalidatepage(page, 0);
+			block_invalidatepage(page, 0, PAGE_CACHE_SIZE);
 			ClearPageUptodate(page);
 			unlock_page(page);
 		}
@@ -2863,7 +2870,8 @@ static int ext4_da_write_end(struct file *file,
 	return ret ? ret : copied;
 }
 
-static void ext4_da_invalidatepage(struct page *page, unsigned long offset)
+static void ext4_da_invalidatepage(struct page *page, unsigned int offset,
+				   unsigned int length)
 {
 	/*
 	 * Drop reserved blocks
@@ -2872,10 +2880,10 @@ static void ext4_da_invalidatepage(struct page *page, unsigned long offset)
 	if (!page_has_buffers(page))
 		goto out;
 
-	ext4_da_page_release_reservation(page, offset);
+	ext4_da_page_release_reservation(page, offset, length);
 
 out:
-	ext4_invalidatepage(page, offset);
+	ext4_invalidatepage(page, offset, length);
 
 	return;
 }
@@ -3023,14 +3031,15 @@ ext4_readpages(struct file *file, struct address_space *mapping,
 	return mpage_readpages(mapping, pages, nr_pages, ext4_get_block);
 }
 
-static void ext4_invalidatepage(struct page *page, unsigned long offset)
+static void ext4_invalidatepage(struct page *page, unsigned int offset,
+				unsigned int length)
 {
-	trace_ext4_invalidatepage(page, offset);
+	trace_ext4_invalidatepage(page, offset, length);
 
 	/* No journalling happens on data buffers when this function is used */
 	WARN_ON(page_has_buffers(page) && buffer_jbd(page_buffers(page)));
 
-	block_invalidatepage(page, offset);
+	block_invalidatepage(page, offset, length);
 }
 
 static int __ext4_journalled_invalidatepage(struct page *page,

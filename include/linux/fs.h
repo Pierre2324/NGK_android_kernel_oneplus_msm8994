@@ -377,7 +377,7 @@ struct address_space_operations {
 
 	/* Unfortunately this kludge is needed for FIBMAP. Don't use it */
 	sector_t (*bmap)(struct address_space *, sector_t);
-	void (*invalidatepage) (struct page *, unsigned long);
+	void (*invalidatepage) (struct page *, unsigned int, unsigned int);
 	int (*releasepage) (struct page *, gfp_t);
 	void (*freepage)(struct page *);
 	ssize_t (*direct_IO)(int, struct kiocb *, const struct iovec *iov,
@@ -623,15 +623,6 @@ struct inode {
 
 #if IS_ENABLED(CONFIG_FS_ENCRYPTION)
 	struct fscrypt_info	*i_crypt_info;
-#endif
-
-	void			*i_private; /* fs or device private pointer */
-#ifdef CONFIG_SECURITY_SELINUX
-	/*
-	 * This needs to be at the end so its size won't cause the rest of the
-	 * struct to be broken across cachelines, thereby wrecking performance.
-	 */
-	struct inode_security_struct i_security[1];
 #endif
 
 	void			*i_private; /* fs or device private pointer */
