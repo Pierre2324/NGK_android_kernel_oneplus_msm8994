@@ -3034,7 +3034,7 @@ ext4_readpages(struct file *file, struct address_space *mapping,
 static void ext4_invalidatepage(struct page *page, unsigned int offset,
 				unsigned int length)
 {
-	trace_ext4_invalidatepage(page, offset, length);
+	trace_ext4_invalidatepage(page, offset);
 
 	/* No journalling happens on data buffers when this function is used */
 	WARN_ON(page_has_buffers(page) && buffer_jbd(page_buffers(page)));
@@ -3043,7 +3043,8 @@ static void ext4_invalidatepage(struct page *page, unsigned int offset,
 }
 
 static int __ext4_journalled_invalidatepage(struct page *page,
-					    unsigned long offset)
+					    unsigned int offset,
+					    unsigned int length)
 {
 	journal_t *journal = EXT4_JOURNAL(page->mapping->host);
 
@@ -3052,17 +3053,18 @@ static int __ext4_journalled_invalidatepage(struct page *page,
 	/*
 	 * If it's a full truncate we just forget about the pending dirtying
 	 */
-	if (offset == 0)
+	if (offset == 0 && length == PAGE_CACHE_SIZE)
 		ClearPageChecked(page);
 
-	return jbd2_journal_invalidatepage(journal, page, offset);
+	return jbd2_journal_invalidatepage(journal, page, offset, length);
 }
 
 /* Wrapper for aops... */
 static void ext4_journalled_invalidatepage(struct page *page,
-					   unsigned long offset)
+					   unsigned int offset,
+					   unsigned int length)
 {
-	WARN_ON(__ext4_journalled_invalidatepage(page, offset) < 0);
+	WARN_ON(__ext4_journalled_invalidatepage(page, offset, length) < 0);
 }
 
 static int ext4_releasepage(struct page *page, gfp_t wait)
@@ -4704,7 +4706,8 @@ static void ext4_wait_for_tail_page_commit(struct inode *inode)
 				      inode->i_size >> PAGE_CACHE_SHIFT);
 		if (!page)
 			return;
-		ret = __ext4_journalled_invalidatepage(page, offset);
+		ret = __ext4_journalled_invalidatepage(page, offset,
+						PAGE_CACHE_SIZE - offset);
 		unlock_page(page);
 		page_cache_release(page);
 		if (ret != -EBUSY)
