@@ -13,6 +13,7 @@
 #include <linux/sort.h>
 #include <linux/version.h>
 #include <linux/cpu_boost.h>
+#include <linux/devfreq_boost.h>
 #include <linux/state_notifier.h>
 
 
