@@ -12,6 +12,9 @@
 #include <linux/oom.h>
 #include <linux/sort.h>
 #include <linux/version.h>
+#include <linux/cpu_boost.h>
+#include <linux/state_notifier.h>
+
 
 /* The sched_param struct is located elsewhere in newer kernels */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)
@@ -178,6 +181,11 @@ static void scan_and_kill(unsigned long pages_needed)
 {
 	int i, nr_to_kill = 0, nr_victims = 0;
 	unsigned long pages_found = 0;
+
+	if (!state_suspended) {
+		do_input_boost_max();
+		devfreq_boost_kick_max(DEVFREQ_MSM_CPUBW, 2500);
+	}
 
 	/*
 	 * Hold the tasklist lock so tasks don't disappear while scanning. This
