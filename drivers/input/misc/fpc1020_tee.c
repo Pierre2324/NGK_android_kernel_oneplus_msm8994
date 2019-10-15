@@ -48,6 +48,7 @@
 
 #include <linux/wakelock.h>
 #include <linux/input.h>
+#include <linux/cpu_boost.h>
 
 #ifdef CONFIG_FB
 #include <linux/fb.h>
@@ -1047,6 +1048,8 @@ static irqreturn_t fpc1020_irq_handler(int irq, void *handle)
 		return IRQ_HANDLED;
 
 	wake_lock_timeout(&fpc1020->ttw_wl, msecs_to_jiffies(FPC_TTW_HOLD_TIME));
+
+	do_input_boost_max();
 
 	if (!fpc1020->screen_state) {
 		input_report_key(fpc1020->input_dev, KEY_FINGERPRINT, 1);
