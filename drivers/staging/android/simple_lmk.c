@@ -183,11 +183,6 @@ static void scan_and_kill(unsigned long pages_needed)
 	int i, nr_to_kill = 0, nr_victims = 0;
 	unsigned long pages_found = 0;
 
-	if (!state_suspended) {
-		do_input_boost_max();
-		devfreq_boost_kick_max(DEVFREQ_MSM_CPUBW, 2500);
-	}
-
 	/*
 	 * Hold the tasklist lock so tasks don't disappear while scanning. This
 	 * is preferred to holding an RCU read lock so that the list of tasks
@@ -228,6 +223,11 @@ static void scan_and_kill(unsigned long pages_needed)
 		pr_info("Killing %s with adj %d to free %lu KiB\n", vtsk->comm,
 			vtsk->signal->oom_score_adj,
 			victim->size << (PAGE_SHIFT - 10));
+
+		if (!state_suspended) {
+			do_input_boost_max();
+			devfreq_boost_kick_max(DEVFREQ_MSM_CPUBW, 500);
+		}
 
 		/* Accelerate the victim's death by forcing the kill signal */
 		do_send_sig_info(SIGKILL, SIG_INFO_TYPE, vtsk, KILL_GROUP_TYPE);
