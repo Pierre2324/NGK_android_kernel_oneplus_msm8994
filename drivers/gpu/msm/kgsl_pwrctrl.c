@@ -1420,11 +1420,11 @@ int kgsl_pwrctrl_init(struct kgsl_device *device)
 
 	if (kgsl_property_read_u32(device, "qcom,pm-qos-active-latency",
 		&pwr->pm_qos_active_latency))
-		pwr->pm_qos_active_latency = 501;
+		pwr->pm_qos_active_latency = 1000;
 
 	if (kgsl_property_read_u32(device, "qcom,pm-qos-wakeup-latency",
 		&pwr->pm_qos_wakeup_latency))
-		pwr->pm_qos_wakeup_latency = 101;
+		pwr->pm_qos_wakeup_latency = 100;
 
 	pm_runtime_enable(&pdev->dev);
 
