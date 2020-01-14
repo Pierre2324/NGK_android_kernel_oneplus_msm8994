@@ -86,10 +86,20 @@ static bool sleep_disabled;
 module_param_named(sleep_disabled,
 	sleep_disabled, bool, S_IRUGO | S_IWUSR | S_IWGRP);
 
+static bool sleep_disabled_touch;
+module_param_named(sleep_disabled_touch, sleep_disabled_touch, bool, 0664);
+
 s32 msm_cpuidle_get_deep_idle_latency(void)
 {
 	return 10;
 }
+
+void lpm_disable_for_input(bool on)
+{
+	sleep_disabled_touch = !!on;
+	return;
+}
+EXPORT_SYMBOL(lpm_disable_for_input);
 
 static void setup_broadcast_timer(void *arg)
 {
@@ -201,7 +211,7 @@ static int cpu_power_select(struct cpuidle_device *dev,
 	if (!cpu)
 		return -EINVAL;
 
-	if (sleep_disabled)
+	if (sleep_disabled || sleep_disabled_touch)
 		return 0;
 
 	next_event_us = (uint32_t)(ktime_to_us(get_next_event_time(dev->cpu)));
