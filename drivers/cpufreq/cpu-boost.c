@@ -24,6 +24,7 @@
 #include <linux/input.h>
 #include <linux/time.h>
 #include <linux/cpu_boost.h>
+#include <linux/devfreq_boost.h>
 
 #include "../../kernel/sched/sched.h"
 
@@ -256,7 +257,9 @@ static void do_input_boost(struct kthread_work *work)
 		else
 			sched_boost_active = true;
 	}
-
+	
+	devfreq_boost_kick_max(DEVFREQ_MSM_CPUBW, 500);
+	
 	queue_delayed_work(system_power_efficient_wq,
 		&input_boost_rem, msecs_to_jiffies(input_boost_ms));
 }
