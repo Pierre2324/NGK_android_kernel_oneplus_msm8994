@@ -39,7 +39,7 @@ static DEFINE_PER_CPU(struct cpu_sync, sync_info);
 static unsigned int input_boost_enabled = 1;
 module_param(input_boost_enabled, uint, 0644);
 
-static bool input_devfreq_boost = 0;
+static unsigned int input_devfreq_boost = 0;
 module_param(input_devfreq_boost, uint, 0644);
 
 static unsigned int input_boost_ms = 40;

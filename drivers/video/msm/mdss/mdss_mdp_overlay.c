@@ -51,7 +51,7 @@
 
 #define BUF_POOL_SIZE 32
 
-static bool frame_boost = 0;
+static unsigned int frame_boost = 0;
 module_param(frame_boost, uint, 0644);
 
 static int mdss_mdp_overlay_free_fb_pipe(struct msm_fb_data_type *mfd);
