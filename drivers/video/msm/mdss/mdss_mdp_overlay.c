@@ -51,6 +51,9 @@
 
 #define BUF_POOL_SIZE 32
 
+static bool frame_boost = 0;
+module_param(frame_boost, uint, 0644);
+
 static int mdss_mdp_overlay_free_fb_pipe(struct msm_fb_data_type *mfd);
 static int mdss_mdp_overlay_fb_parse_dt(struct msm_fb_data_type *mfd);
 static int mdss_mdp_overlay_off(struct msm_fb_data_type *mfd);
@@ -4198,7 +4201,8 @@ static int __handle_overlay_prepare(struct msm_fb_data_type *mfd,
 
 	pr_debug("prepare fb%d num_ovs=%d\n", mfd->index, num_ovs);
 
-	devfreq_boost_kick_max(DEVFREQ_MSM_CPUBW, 200);
+	if(frame_boost)
+		devfreq_boost_kick_max(DEVFREQ_MSM_CPUBW, 200);
 
 	for (i = 0; i < num_ovs; i++) {
 		if (IS_RIGHT_MIXER_OV(ip_ovs[i].flags, ip_ovs[i].dst_rect.x,

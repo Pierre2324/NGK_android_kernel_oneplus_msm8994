@@ -39,6 +39,9 @@ static DEFINE_PER_CPU(struct cpu_sync, sync_info);
 static unsigned int input_boost_enabled = 1;
 module_param(input_boost_enabled, uint, 0644);
 
+static bool input_devfreq_boost = 0;
+module_param(input_devfreq_boost, uint, 0644);
+
 static unsigned int input_boost_ms = 40;
 module_param(input_boost_ms, uint, 0644);
 
@@ -258,7 +261,8 @@ static void do_input_boost(struct kthread_work *work)
 			sched_boost_active = true;
 	}
 	
-	devfreq_boost_kick_max(DEVFREQ_MSM_CPUBW, 500);
+	if(input_devfreq_boost)
+		devfreq_boost_kick_max(DEVFREQ_MSM_CPUBW, 500);
 	
 	queue_delayed_work(system_power_efficient_wq,
 		&input_boost_rem, msecs_to_jiffies(input_boost_ms));
