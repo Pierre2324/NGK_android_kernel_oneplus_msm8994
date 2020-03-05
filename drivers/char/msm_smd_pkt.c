@@ -21,7 +21,6 @@
 #include <linux/fs.h>
 #include <linux/device.h>
 #include <linux/sched.h>
-#include <linux/spinlock.h>
 #include <linux/mutex.h>
 #include <linux/delay.h>
 #include <linux/uaccess.h>
@@ -47,7 +46,6 @@
 
 #define MODULE_NAME "msm_smdpkt"
 #define DEVICE_NAME "smdpkt"
-#define WAKEUPSOURCE_TIMEOUT (2000) /* two seconds */
 
 struct smd_pkt_dev {
 	struct list_head dev_list;
@@ -79,9 +77,6 @@ struct smd_pkt_dev {
 	int has_reset;
 	int do_reset_notification;
 	struct completion ch_allocated;
-	struct wakeup_source pa_ws;	/* Packet Arrival Wakeup Source */
-	struct work_struct packet_arrival_work;
-	spinlock_t pa_spinlock;
 	int ws_locked;
 };
 
@@ -332,28 +327,6 @@ static void loopback_probe_worker(struct work_struct *work)
 
 }
 
-static void packet_arrival_worker(struct work_struct *work)
-{
-	struct smd_pkt_dev *smd_pkt_devp;
-	unsigned long flags;
-
-	smd_pkt_devp = container_of(work, struct smd_pkt_dev,
-				    packet_arrival_work);
-	mutex_lock(&smd_pkt_devp->ch_lock);
-	spin_lock_irqsave(&smd_pkt_devp->pa_spinlock, flags);
-	if (smd_pkt_devp->ch && smd_pkt_devp->ws_locked) {
-		D_READ("%s locking smd_pkt_dev id:%d wakeup source\n",
-			__func__, smd_pkt_devp->i);
-		/*
-		 * Keep system awake long enough to allow userspace client
-		 * to process the packet.
-		 */
-		__pm_wakeup_event(&smd_pkt_devp->pa_ws, WAKEUPSOURCE_TIMEOUT);
-	}
-	spin_unlock_irqrestore(&smd_pkt_devp->pa_spinlock, flags);
-	mutex_unlock(&smd_pkt_devp->ch_lock);
-}
-
 static long smd_pkt_ioctl(struct file *file, unsigned int cmd,
 					     unsigned long arg)
 {
@@ -405,7 +378,6 @@ ssize_t smd_pkt_read(struct file *file,
 	int bytes_read;
 	int pkt_size;
 	struct smd_pkt_dev *smd_pkt_devp;
-	unsigned long flags;
 	void *buf;
 
 	smd_pkt_devp = file->private_data;
@@ -524,18 +496,11 @@ wait_for_packet:
 	} while (pkt_size != bytes_read);
 	mutex_unlock(&smd_pkt_devp->rx_lock);
 
-	mutex_lock(&smd_pkt_devp->ch_lock);
-	spin_lock_irqsave(&smd_pkt_devp->pa_spinlock, flags);
 	if (smd_pkt_devp->poll_mode &&
 	    !smd_cur_packet_size(smd_pkt_devp->ch)) {
-		__pm_relax(&smd_pkt_devp->pa_ws);
 		smd_pkt_devp->ws_locked = 0;
 		smd_pkt_devp->poll_mode = 0;
-		D_READ("%s unlocked smd_pkt_dev id:%d wakeup_source\n",
-			__func__, smd_pkt_devp->i);
 	}
-	spin_unlock_irqrestore(&smd_pkt_devp->pa_spinlock, flags);
-	mutex_unlock(&smd_pkt_devp->ch_lock);
 
 	r = copy_to_user(_buf, buf, bytes_read);
 	if (r) {
@@ -689,7 +654,6 @@ static unsigned int smd_pkt_poll(struct file *file, poll_table *wait)
 static void check_and_wakeup_reader(struct smd_pkt_dev *smd_pkt_devp)
 {
 	int sz;
-	unsigned long flags;
 
 	if (!smd_pkt_devp) {
 		pr_err("%s on a NULL device\n", __func__);
@@ -714,14 +678,8 @@ static void check_and_wakeup_reader(struct smd_pkt_dev *smd_pkt_devp)
 			__func__, sz, smd_pkt_devp->i);
 		return;
 	}
-
-	/* here we have a packet of size sz ready */
-	spin_lock_irqsave(&smd_pkt_devp->pa_spinlock, flags);
-	__pm_stay_awake(&smd_pkt_devp->pa_ws);
-	smd_pkt_devp->ws_locked = 1;
-	spin_unlock_irqrestore(&smd_pkt_devp->pa_spinlock, flags);
+	
 	wake_up(&smd_pkt_devp->ch_read_wait_queue);
-	schedule_work(&smd_pkt_devp->packet_arrival_work);
 	D_READ("%s: wake_up smd_pkt_dev id:%d\n", __func__, smd_pkt_devp->i);
 }
 
@@ -1226,10 +1184,6 @@ int smd_pkt_release(struct inode *inode, struct file *file)
 	mutex_unlock(&smd_pkt_devp->rx_lock);
 	mutex_unlock(&smd_pkt_devp->ch_lock);
 
-	if (flush_work(&smd_pkt_devp->packet_arrival_work))
-		D_STATUS("%s: Flushed work for smd_pkt_dev id:%d\n", __func__,
-				smd_pkt_devp->i);
-
 	D_STATUS("Finished %s on smd_pkt_dev id:%d\n",
 		 __func__, smd_pkt_devp->i);
 
@@ -1260,12 +1214,9 @@ static int smd_pkt_init_add_device(struct smd_pkt_dev *smd_pkt_devp, int i)
 	smd_pkt_devp->ws_locked = 0;
 	init_waitqueue_head(&smd_pkt_devp->ch_opened_wait_queue);
 
-	spin_lock_init(&smd_pkt_devp->pa_spinlock);
 	mutex_init(&smd_pkt_devp->ch_lock);
 	mutex_init(&smd_pkt_devp->rx_lock);
 	mutex_init(&smd_pkt_devp->tx_lock);
-	wakeup_source_init(&smd_pkt_devp->pa_ws, smd_pkt_devp->dev_name);
-	INIT_WORK(&smd_pkt_devp->packet_arrival_work, packet_arrival_worker);
 	init_completion(&smd_pkt_devp->ch_allocated);
 
 	cdev_init(&smd_pkt_devp->cdev, &smd_pkt_fops);
@@ -1290,7 +1241,6 @@ static int smd_pkt_init_add_device(struct smd_pkt_dev *smd_pkt_devp, int i)
 			__func__, i);
 		r = -ENOMEM;
 		cdev_del(&smd_pkt_devp->cdev);
-		wakeup_source_trash(&smd_pkt_devp->pa_ws);
 		return r;
 	}
 	if (device_create_file(smd_pkt_devp->devicep,
